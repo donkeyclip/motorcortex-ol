@@ -1,6 +1,6 @@
 {
   "name": "@donkeyclip/motorcortex-ol",
-  "version": "3.1.0",
+  "version": "3.0.0",
   "description": "Openlayers library for MotorCortex",
   "main": "dist/motorcortex-ol.cjs.js",
   "module": "dist/motorcortex-ol.esm.js",

@@ -1,5 +1,32 @@
 # Changelog
 
+## 3.0.0 (2023-10-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* update mc version
+
+### Features
+
+* drop explorer 11 support ([71cc889](https://github.com/donkeyclip/motorcortex-ol/commit/71cc889d2bcc0f457204cdc99b554a504e530d53))
+* update compatibility with motorcortex ([499e125](https://github.com/donkeyclip/motorcortex-ol/commit/499e125d67df309a789c2c1dadf63e440de13cab))
+* update mc version ([f70ac11](https://github.com/donkeyclip/motorcortex-ol/commit/f70ac1190b46baf94b6cd5efeba26721dda440d1))
+* update to ol 6.13.0 ([b0c0d62](https://github.com/donkeyclip/motorcortex-ol/commit/b0c0d6271b82b6234ade1f0458397d434d4b47aa))
+
+
+### Bug Fixes
+
+* **deps:** update dependency ol to v6.15.1 ([6095560](https://github.com/donkeyclip/motorcortex-ol/commit/609556046d1f08f638f1776c2cae55b1115ca23e))
+* fix eslint parser ([7d5e2e7](https://github.com/donkeyclip/motorcortex-ol/commit/7d5e2e799d9d933edea9676952955fa8249c220b))
+* preload more tiles for a smoother experience ([4dd5ce0](https://github.com/donkeyclip/motorcortex-ol/commit/4dd5ce0bade20c8abd7be42837f2e90c273fd09c))
+* upgrade mc to latest version ([e10d27c](https://github.com/donkeyclip/motorcortex-ol/commit/e10d27cc915438e1f06851507df52a0aaa236d73))
+
+
+### Miscellaneous Chores
+
+* release 3.0.0 ([84b6bdf](https://github.com/donkeyclip/motorcortex-ol/commit/84b6bdfab44a14460a25c5a0129dfcaa03f3cc66))
+
 ## [3.1.0](https://github.com/donkeyclip/motorcortex-ol/compare/v3.0.1...v3.1.0) (2022-04-07)
 
 
