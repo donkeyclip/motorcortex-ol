@@ -24,9 +24,11 @@
 MotorCortex Openlayers takes the capabilities of [Openlayers](https://openlayers.org/) library of creating a dynamic map in any web page.
 The library exposes a Map Clip with the name Clip which will initialize an Openlayer Map instance where you can add animation with the "GoTo" Incident.
 
-This Plugin exposes two Incident:
-- Map Clip
-- GoTo
+This Plugin exposes:
+- **Map Clip** — creates an OpenLayers map
+- **GoTo** — fly animation between locations (center, zoom, rotation)
+- **MapAttr** — animate properties on map entities (opacity, scale)
+- **addCustomEntity** — dynamically add points, lines, polylines, and polygons to the map
 
 # Getting Started
 
@@ -90,10 +92,95 @@ Goto Incident take as an attribute a `goto` object.This object contains the endi
 #### IMPORTANT
 Along with the attributes, all `GoTo incidents` must take on their props the `selector` key with the value: `!#olmap`
 
+## Dynamic Map Entities (addCustomEntity)
+
+Add points, lines, polylines, and polygons dynamically. Entities start hidden (`hidden: true`) and are revealed via `MapAttr` incidents.
+
+### Point (marker)
+```javascript
+map.addCustomEntity(
+  { type: "point", coords: [37.6178, 55.7517], color: "#e76f51", label: "Moscow", size: 10 },
+  "moscow", ["cities"], true
+);
+```
+
+### Line
+```javascript
+map.addCustomEntity(
+  { type: "line", coords: [[37.6, 55.7], [30.3, 59.9]], color: "#264653", width: 3 },
+  "route1", ["routes"], true
+);
+```
+
+### Polyline
+```javascript
+map.addCustomEntity(
+  { type: "polyline", coords: [[37.6, 55.7], [30.3, 59.9], [24.9, 60.2]], color: "#2a9d8f", width: 2 },
+  "path1", ["routes"], true
+);
+```
+
+### Polygon
+```javascript
+map.addCustomEntity(
+  {
+    type: "polygon",
+    coords: [[36, 56.5], [39, 56.5], [39, 54.5], [36, 54.5], [36, 56.5]],
+    color: "#f4a261",
+    fillColor: "rgba(244, 162, 97, 0.3)",
+    width: 2,
+  },
+  "region1", ["regions"], true
+);
+```
+
+**Definition shape:**
+
+| Property  | Type     | Description                                                    |
+| --------- | -------- | -------------------------------------------------------------- |
+| type      | string   | `"point"`, `"line"`, `"polyline"`, or `"polygon"`              |
+| coords    | array    | `[lon, lat]` for point, `[[lon,lat], ...]` for line/poly       |
+| color     | string   | Stroke/marker color (e.g. `"#e76f51"`)                         |
+| fillColor | string   | Fill color for polygons (e.g. `"rgba(42, 157, 143, 0.3)"`)    |
+| width     | number   | Stroke width for lines/polygons                                |
+| size      | number   | Marker radius for points (default: 8)                          |
+| label     | string   | Text label displayed above point markers                       |
+
+## MapAttr Effect
+
+Animate properties on individual map entities. Targets entities by their MC selector (`!#id`).
+
+### Opacity (reveal/hide)
+```javascript
+map.addIncident(
+  new Maps.MapAttr(
+    { animatedAttrs: { opacity: 1 } },
+    { selector: "!#moscow", duration: 1000 }
+  ),
+  8500
+);
+```
+
+### Scale (marker pulse)
+```javascript
+map.addIncident(
+  new Maps.MapAttr(
+    { animatedAttrs: { scale: 2 } },
+    { selector: "!#moscow", duration: 500 }
+  ),
+  15000
+);
+```
+
+| Animated Attr | Type   | Description                          |
+| ------------- | ------ | ------------------------------------ |
+| opacity       | number | 0 (invisible) to 1 (fully visible)  |
+| scale         | number | Marker scale multiplier (default: 1) |
+
 # Adding Incidents in your clip
 
 ```javascript
-mapsClipName.addIncident(incidentGoToName,startTime);
+mapsClipName.addIncident(incidentGoToName, startTime);
 ```
 
 # Contributing 

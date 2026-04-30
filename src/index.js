@@ -1,11 +1,12 @@
 import Clip from "./MapClip";
 import GoTo from "./GoTo";
+import MapAttr from "./MapAttr";
 import { fromLonLat } from "ol/proj.js";
 import packageJSON from "../package.json";
 
 export default {
-  npm_name: packageJSON.name, // don't touch this
-  version: packageJSON.version, // don't touch this
+  npm_name: packageJSON.name,
+  version: packageJSON.version,
   incidents: [
     {
       exportable: GoTo,
@@ -24,6 +25,10 @@ export default {
           },
         },
       },
+    },
+    {
+      exportable: MapAttr,
+      name: "MapAttr",
     },
   ],
   compositeAttributes: { goto: ["center", "zoom"] },

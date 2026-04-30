@@ -29055,6 +29055,507 @@ var Icon = /** @class */function (_super) {
 }(ImageStyle);
 
 /**
+ * @module ol/style/Text
+ */
+/**
+ * The default fill color to use if no fill was set at construction time; a
+ * blackish `#333`.
+ *
+ * @const {string}
+ */
+var DEFAULT_FILL_COLOR = '#333';
+/**
+ * @typedef {Object} Options
+ * @property {string} [font] Font style as CSS 'font' value, see:
+ * https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/font. Default is '10px sans-serif'
+ * @property {number} [maxAngle=Math.PI/4] When `placement` is set to `'line'`, allow a maximum angle between adjacent characters.
+ * The expected value is in radians, and the default is 45° (`Math.PI / 4`).
+ * @property {number} [offsetX=0] Horizontal text offset in pixels. A positive will shift the text right.
+ * @property {number} [offsetY=0] Vertical text offset in pixels. A positive will shift the text down.
+ * @property {boolean} [overflow=false] For polygon labels or when `placement` is set to `'line'`, allow text to exceed
+ * the width of the polygon at the label position or the length of the path that it follows.
+ * @property {import("./TextPlacement.js").default|string} [placement='point'] Text placement.
+ * @property {number|import("../size.js").Size} [scale] Scale.
+ * @property {boolean} [rotateWithView=false] Whether to rotate the text with the view.
+ * @property {number} [rotation=0] Rotation in radians (positive rotation clockwise).
+ * @property {string|Array<string>} [text] Text content or rich text content. For plain text provide a string, which can
+ * contain line breaks (`\n`). For rich text provide an array of text/font tuples. A tuple consists of the text to
+ * render and the font to use (or `''` to use the text style's font). A line break has to be a separate tuple (i.e. `'\n', ''`).
+ * **Example:** `['foo', 'bold 10px sans-serif', ' bar', 'italic 10px sans-serif', ' baz', '']` will yield "**foo** *bar* baz".
+ * **Note:** Rich text is not supported for the immediate rendering API.
+ * @property {string} [textAlign] Text alignment. Possible values: 'left', 'right', 'center', 'end' or 'start'.
+ * Default is 'center' for `placement: 'point'`. For `placement: 'line'`, the default is to let the renderer choose a
+ * placement where `maxAngle` is not exceeded.
+ * @property {string} [justify] Text justification within the text box.
+ * If not set, text is justified towards the `textAlign` anchor.
+ * Otherwise, use options `'left'`, `'center'`, or `'right'` to justify the text within the text box.
+ * **Note:** `justify` is ignored for immediate rendering and also for `placement: 'line'`.
+ * @property {string} [textBaseline='middle'] Text base line. Possible values: 'bottom', 'top', 'middle', 'alphabetic',
+ * 'hanging', 'ideographic'.
+ * @property {import("./Fill.js").default} [fill] Fill style. If none is provided, we'll use a dark fill-style (#333).
+ * @property {import("./Stroke.js").default} [stroke] Stroke style.
+ * @property {import("./Fill.js").default} [backgroundFill] Fill style for the text background when `placement` is
+ * `'point'`. Default is no fill.
+ * @property {import("./Stroke.js").default} [backgroundStroke] Stroke style for the text background  when `placement`
+ * is `'point'`. Default is no stroke.
+ * @property {Array<number>} [padding=[0, 0, 0, 0]] Padding in pixels around the text for decluttering and background. The order of
+ * values in the array is `[top, right, bottom, left]`.
+ */
+/**
+ * @classdesc
+ * Set text style for vector features.
+ * @api
+ */
+var Text = /** @class */function () {
+  /**
+   * @param {Options} [opt_options] Options.
+   */
+  function Text(opt_options) {
+    var options = opt_options || {};
+    /**
+     * @private
+     * @type {string|undefined}
+     */
+    this.font_ = options.font;
+    /**
+     * @private
+     * @type {number|undefined}
+     */
+    this.rotation_ = options.rotation;
+    /**
+     * @private
+     * @type {boolean|undefined}
+     */
+    this.rotateWithView_ = options.rotateWithView;
+    /**
+     * @private
+     * @type {number|import("../size.js").Size|undefined}
+     */
+    this.scale_ = options.scale;
+    /**
+     * @private
+     * @type {import("../size.js").Size}
+     */
+    this.scaleArray_ = toSize(options.scale !== undefined ? options.scale : 1);
+    /**
+     * @private
+     * @type {string|Array<string>|undefined}
+     */
+    this.text_ = options.text;
+    /**
+     * @private
+     * @type {string|undefined}
+     */
+    this.textAlign_ = options.textAlign;
+    /**
+     * @private
+     * @type {string|undefined}
+     */
+    this.justify_ = options.justify;
+    /**
+     * @private
+     * @type {string|undefined}
+     */
+    this.textBaseline_ = options.textBaseline;
+    /**
+     * @private
+     * @type {import("./Fill.js").default}
+     */
+    this.fill_ = options.fill !== undefined ? options.fill : new Fill({
+      color: DEFAULT_FILL_COLOR
+    });
+    /**
+     * @private
+     * @type {number}
+     */
+    this.maxAngle_ = options.maxAngle !== undefined ? options.maxAngle : Math.PI / 4;
+    /**
+     * @private
+     * @type {import("./TextPlacement.js").default|string}
+     */
+    this.placement_ = options.placement !== undefined ? options.placement : TextPlacement.POINT;
+    /**
+     * @private
+     * @type {boolean}
+     */
+    this.overflow_ = !!options.overflow;
+    /**
+     * @private
+     * @type {import("./Stroke.js").default}
+     */
+    this.stroke_ = options.stroke !== undefined ? options.stroke : null;
+    /**
+     * @private
+     * @type {number}
+     */
+    this.offsetX_ = options.offsetX !== undefined ? options.offsetX : 0;
+    /**
+     * @private
+     * @type {number}
+     */
+    this.offsetY_ = options.offsetY !== undefined ? options.offsetY : 0;
+    /**
+     * @private
+     * @type {import("./Fill.js").default}
+     */
+    this.backgroundFill_ = options.backgroundFill ? options.backgroundFill : null;
+    /**
+     * @private
+     * @type {import("./Stroke.js").default}
+     */
+    this.backgroundStroke_ = options.backgroundStroke ? options.backgroundStroke : null;
+    /**
+     * @private
+     * @type {Array<number>|null}
+     */
+    this.padding_ = options.padding === undefined ? null : options.padding;
+  }
+  /**
+   * Clones the style.
+   * @return {Text} The cloned style.
+   * @api
+   */
+  Text.prototype.clone = function () {
+    var scale = this.getScale();
+    return new Text({
+      font: this.getFont(),
+      placement: this.getPlacement(),
+      maxAngle: this.getMaxAngle(),
+      overflow: this.getOverflow(),
+      rotation: this.getRotation(),
+      rotateWithView: this.getRotateWithView(),
+      scale: Array.isArray(scale) ? scale.slice() : scale,
+      text: this.getText(),
+      textAlign: this.getTextAlign(),
+      justify: this.getJustify(),
+      textBaseline: this.getTextBaseline(),
+      fill: this.getFill() ? this.getFill().clone() : undefined,
+      stroke: this.getStroke() ? this.getStroke().clone() : undefined,
+      offsetX: this.getOffsetX(),
+      offsetY: this.getOffsetY(),
+      backgroundFill: this.getBackgroundFill() ? this.getBackgroundFill().clone() : undefined,
+      backgroundStroke: this.getBackgroundStroke() ? this.getBackgroundStroke().clone() : undefined,
+      padding: this.getPadding() || undefined
+    });
+  };
+  /**
+   * Get the `overflow` configuration.
+   * @return {boolean} Let text overflow the length of the path they follow.
+   * @api
+   */
+  Text.prototype.getOverflow = function () {
+    return this.overflow_;
+  };
+  /**
+   * Get the font name.
+   * @return {string|undefined} Font.
+   * @api
+   */
+  Text.prototype.getFont = function () {
+    return this.font_;
+  };
+  /**
+   * Get the maximum angle between adjacent characters.
+   * @return {number} Angle in radians.
+   * @api
+   */
+  Text.prototype.getMaxAngle = function () {
+    return this.maxAngle_;
+  };
+  /**
+   * Get the label placement.
+   * @return {import("./TextPlacement.js").default|string} Text placement.
+   * @api
+   */
+  Text.prototype.getPlacement = function () {
+    return this.placement_;
+  };
+  /**
+   * Get the x-offset for the text.
+   * @return {number} Horizontal text offset.
+   * @api
+   */
+  Text.prototype.getOffsetX = function () {
+    return this.offsetX_;
+  };
+  /**
+   * Get the y-offset for the text.
+   * @return {number} Vertical text offset.
+   * @api
+   */
+  Text.prototype.getOffsetY = function () {
+    return this.offsetY_;
+  };
+  /**
+   * Get the fill style for the text.
+   * @return {import("./Fill.js").default} Fill style.
+   * @api
+   */
+  Text.prototype.getFill = function () {
+    return this.fill_;
+  };
+  /**
+   * Determine whether the text rotates with the map.
+   * @return {boolean|undefined} Rotate with map.
+   * @api
+   */
+  Text.prototype.getRotateWithView = function () {
+    return this.rotateWithView_;
+  };
+  /**
+   * Get the text rotation.
+   * @return {number|undefined} Rotation.
+   * @api
+   */
+  Text.prototype.getRotation = function () {
+    return this.rotation_;
+  };
+  /**
+   * Get the text scale.
+   * @return {number|import("../size.js").Size|undefined} Scale.
+   * @api
+   */
+  Text.prototype.getScale = function () {
+    return this.scale_;
+  };
+  /**
+   * Get the symbolizer scale array.
+   * @return {import("../size.js").Size} Scale array.
+   */
+  Text.prototype.getScaleArray = function () {
+    return this.scaleArray_;
+  };
+  /**
+   * Get the stroke style for the text.
+   * @return {import("./Stroke.js").default} Stroke style.
+   * @api
+   */
+  Text.prototype.getStroke = function () {
+    return this.stroke_;
+  };
+  /**
+   * Get the text to be rendered.
+   * @return {string|Array<string>|undefined} Text.
+   * @api
+   */
+  Text.prototype.getText = function () {
+    return this.text_;
+  };
+  /**
+   * Get the text alignment.
+   * @return {string|undefined} Text align.
+   * @api
+   */
+  Text.prototype.getTextAlign = function () {
+    return this.textAlign_;
+  };
+  /**
+   * Get the justification.
+   * @return {string|undefined} Justification.
+   * @api
+   */
+  Text.prototype.getJustify = function () {
+    return this.justify_;
+  };
+  /**
+   * Get the text baseline.
+   * @return {string|undefined} Text baseline.
+   * @api
+   */
+  Text.prototype.getTextBaseline = function () {
+    return this.textBaseline_;
+  };
+  /**
+   * Get the background fill style for the text.
+   * @return {import("./Fill.js").default} Fill style.
+   * @api
+   */
+  Text.prototype.getBackgroundFill = function () {
+    return this.backgroundFill_;
+  };
+  /**
+   * Get the background stroke style for the text.
+   * @return {import("./Stroke.js").default} Stroke style.
+   * @api
+   */
+  Text.prototype.getBackgroundStroke = function () {
+    return this.backgroundStroke_;
+  };
+  /**
+   * Get the padding for the text.
+   * @return {Array<number>|null} Padding.
+   * @api
+   */
+  Text.prototype.getPadding = function () {
+    return this.padding_;
+  };
+  /**
+   * Set the `overflow` property.
+   *
+   * @param {boolean} overflow Let text overflow the path that it follows.
+   * @api
+   */
+  Text.prototype.setOverflow = function (overflow) {
+    this.overflow_ = overflow;
+  };
+  /**
+   * Set the font.
+   *
+   * @param {string|undefined} font Font.
+   * @api
+   */
+  Text.prototype.setFont = function (font) {
+    this.font_ = font;
+  };
+  /**
+   * Set the maximum angle between adjacent characters.
+   *
+   * @param {number} maxAngle Angle in radians.
+   * @api
+   */
+  Text.prototype.setMaxAngle = function (maxAngle) {
+    this.maxAngle_ = maxAngle;
+  };
+  /**
+   * Set the x offset.
+   *
+   * @param {number} offsetX Horizontal text offset.
+   * @api
+   */
+  Text.prototype.setOffsetX = function (offsetX) {
+    this.offsetX_ = offsetX;
+  };
+  /**
+   * Set the y offset.
+   *
+   * @param {number} offsetY Vertical text offset.
+   * @api
+   */
+  Text.prototype.setOffsetY = function (offsetY) {
+    this.offsetY_ = offsetY;
+  };
+  /**
+   * Set the text placement.
+   *
+   * @param {import("./TextPlacement.js").default|string} placement Placement.
+   * @api
+   */
+  Text.prototype.setPlacement = function (placement) {
+    this.placement_ = placement;
+  };
+  /**
+   * Set whether to rotate the text with the view.
+   *
+   * @param {boolean} rotateWithView Rotate with map.
+   * @api
+   */
+  Text.prototype.setRotateWithView = function (rotateWithView) {
+    this.rotateWithView_ = rotateWithView;
+  };
+  /**
+   * Set the fill.
+   *
+   * @param {import("./Fill.js").default} fill Fill style.
+   * @api
+   */
+  Text.prototype.setFill = function (fill) {
+    this.fill_ = fill;
+  };
+  /**
+   * Set the rotation.
+   *
+   * @param {number|undefined} rotation Rotation.
+   * @api
+   */
+  Text.prototype.setRotation = function (rotation) {
+    this.rotation_ = rotation;
+  };
+  /**
+   * Set the scale.
+   *
+   * @param {number|import("../size.js").Size|undefined} scale Scale.
+   * @api
+   */
+  Text.prototype.setScale = function (scale) {
+    this.scale_ = scale;
+    this.scaleArray_ = toSize(scale !== undefined ? scale : 1);
+  };
+  /**
+   * Set the stroke.
+   *
+   * @param {import("./Stroke.js").default} stroke Stroke style.
+   * @api
+   */
+  Text.prototype.setStroke = function (stroke) {
+    this.stroke_ = stroke;
+  };
+  /**
+   * Set the text.
+   *
+   * @param {string|Array<string>|undefined} text Text.
+   * @api
+   */
+  Text.prototype.setText = function (text) {
+    this.text_ = text;
+  };
+  /**
+   * Set the text alignment.
+   *
+   * @param {string|undefined} textAlign Text align.
+   * @api
+   */
+  Text.prototype.setTextAlign = function (textAlign) {
+    this.textAlign_ = textAlign;
+  };
+  /**
+   * Set the justification.
+   *
+   * @param {string|undefined} justify Justification.
+   * @api
+   */
+  Text.prototype.setJustify = function (justify) {
+    this.justify_ = justify;
+  };
+  /**
+   * Set the text baseline.
+   *
+   * @param {string|undefined} textBaseline Text baseline.
+   * @api
+   */
+  Text.prototype.setTextBaseline = function (textBaseline) {
+    this.textBaseline_ = textBaseline;
+  };
+  /**
+   * Set the background fill.
+   *
+   * @param {import("./Fill.js").default} fill Fill style.
+   * @api
+   */
+  Text.prototype.setBackgroundFill = function (fill) {
+    this.backgroundFill_ = fill;
+  };
+  /**
+   * Set the background stroke.
+   *
+   * @param {import("./Stroke.js").default} stroke Stroke style.
+   * @api
+   */
+  Text.prototype.setBackgroundStroke = function (stroke) {
+    this.backgroundStroke_ = stroke;
+  };
+  /**
+   * Set the padding (`[top, right, bottom, left]`).
+   *
+   * @param {Array<number>|null} padding Padding.
+   * @api
+   */
+  Text.prototype.setPadding = function (padding) {
+    this.padding_ = padding;
+  };
+  return Text;
+}();
+
+/**
  * @module ol/render/canvas/hitdetect
  */
 var HIT_DETECT_RESOLUTION = 0.5;
@@ -40773,17 +41274,111 @@ var OSM = /** @class */function (_super) {
 
 class OlMap extends motorcortex.BrowserClip {
   onAfterRender() {
+    // Vector layer for dynamic entities (points, lines, polygons)
+    this._vectorSource = new VectorSource();
+    this._vectorLayer = new VectorLayer({
+      source: this._vectorSource
+    });
     const olMap = new Map({
       target: this.context.rootElement,
       layers: [new TileLayer({
         preload: 10,
         source: new OSM()
-      })],
+      }), this._vectorLayer],
       controls: [],
       loadTilesWhileAnimating: true,
       view: new View(this.attrs.parameters.view)
     });
-    this.setCustomEntity("olmap", olMap, ["maps"]);
+    this._olMap = olMap;
+    this.context.setCustomEntity("olmap", olMap, ["maps"]);
+    this.contextLoaded();
+  }
+
+  /**
+   * Create an OL Feature from a definition and add to the vector layer.
+   *
+   * Definition shapes:
+   *   { type: "point", coords: [lon, lat], color, size, label }
+   *   { type: "line", coords: [[lon,lat], [lon,lat], ...], color, width }
+   *   { type: "polyline", coords: [[lon,lat], ...], color, width }
+   *   { type: "polygon", coords: [[lon,lat], ...], color, fillColor, fillOpacity }
+   */
+  renderCustomEntity(definition) {
+    if (!definition || typeof definition !== "object") return null;
+    // Already a live Feature (ClipCopy replay)
+    if (definition instanceof Feature) return definition;
+    const type = definition.type;
+    let geometry;
+    let style;
+    if (type === "point") {
+      geometry = new Point(fromLonLat(definition.coords));
+      const color = definition.color || "#e76f51";
+      const size = definition.size || 8;
+      style = new Style({
+        image: new CircleStyle({
+          radius: size,
+          fill: new Fill({
+            color
+          }),
+          stroke: new Stroke({
+            color: "#ffffff",
+            width: 2
+          })
+        }),
+        text: definition.label ? new Text({
+          text: definition.label,
+          font: '14px "Comic Sans MS", cursive',
+          fill: new Fill({
+            color: "#2c3e50"
+          }),
+          stroke: new Stroke({
+            color: "#ffffff",
+            width: 3
+          }),
+          offsetY: -(size + 12)
+        }) : undefined
+      });
+    } else if (type === "line" || type === "polyline") {
+      geometry = new LineString(definition.coords.map(c => fromLonLat(c)));
+      style = new Style({
+        stroke: new Stroke({
+          color: definition.color || "#264653",
+          width: definition.width || 3
+        })
+      });
+    } else if (type === "polygon") {
+      geometry = new Polygon([definition.coords.map(c => fromLonLat(c))]);
+      style = new Style({
+        fill: new Fill({
+          color: definition.fillColor || "rgba(42, 157, 143, 0.3)"
+        }),
+        stroke: new Stroke({
+          color: definition.color || "#264653",
+          width: definition.width || 2
+        })
+      });
+    } else {
+      return null;
+    }
+    const feature = new Feature({
+      geometry
+    });
+    feature.setStyle(style);
+    // Store original style for restore
+    feature._mcOriginalStyle = style;
+    this._vectorSource.addFeature(feature);
+    return feature;
+  }
+
+  /**
+   * Hide a feature by setting its style opacity to 0.
+   */
+  hideEntity(element) {
+    if (element instanceof Feature) {
+      // Create a transparent clone of the style
+      element.setStyle(new Style({}));
+      element._mcHidden = true;
+    }
   }
 }
 
@@ -40844,8 +41439,133 @@ class ZoomTo extends motorcortex.Effect {
   }
 }
 
+/**
+ * MapAttr — MC Effect for animating properties on OL Features.
+ *
+ * Animatable attrs:
+ *   opacity: 0→1 — feature visibility
+ *   scale: number — marker scale (point features only)
+ */
+class MapAttr extends motorcortex.Effect {
+  getScratchValue() {
+    const key = this.attributeKey;
+    if (key === "opacity") return 0; // features start hidden
+    if (key === "scale") return 1;
+    return 0;
+  }
+  onProgress(millisecond) {
+    const fraction = this.getFraction(millisecond);
+    const feature = this.element?.entity;
+    if (!feature || !feature._mcOriginalStyle) return;
+    const key = this.attributeKey;
+    const target = this.targetValue;
+    const initial = this.initialValue ?? 0;
+    const current = initial + (target - initial) * fraction;
+    const origStyle = feature._mcOriginalStyle;
+    if (key === "opacity") {
+      // Rebuild style with opacity applied
+      const newStyle = this._cloneStyleWithOpacity(origStyle, current);
+      feature.setStyle(newStyle);
+      feature._mcHidden = current < 0.01;
+    } else if (key === "scale") {
+      // Scale the marker image
+      const image = origStyle.getImage();
+      if (image) {
+        const cloned = this._cloneStyleWithOpacity(origStyle, feature._mcHidden ? 0 : 1);
+        const img = cloned.getImage();
+        if (img && typeof img.setScale === "function") {
+          img.setScale(current);
+        }
+        feature.setStyle(cloned);
+      }
+    }
+  }
+
+  /**
+   * Clone an OL Style with a given opacity applied to all fill/stroke/image/text.
+   */
+  _cloneStyleWithOpacity(style, opacity) {
+    const opts = {};
+    const fill = style.getFill();
+    if (fill) {
+      opts.fill = new Fill({
+        color: this._colorWithOpacity(fill.getColor(), opacity)
+      });
+    }
+    const stroke = style.getStroke();
+    if (stroke) {
+      opts.stroke = new Stroke({
+        color: this._colorWithOpacity(stroke.getColor(), opacity),
+        width: stroke.getWidth(),
+        lineDash: stroke.getLineDash()
+      });
+    }
+    const image = style.getImage();
+    if (image instanceof CircleStyle) {
+      const imgFill = image.getFill();
+      const imgStroke = image.getStroke();
+      opts.image = new CircleStyle({
+        radius: image.getRadius(),
+        fill: imgFill ? new Fill({
+          color: this._colorWithOpacity(imgFill.getColor(), opacity)
+        }) : undefined,
+        stroke: imgStroke ? new Stroke({
+          color: this._colorWithOpacity(imgStroke.getColor(), opacity),
+          width: imgStroke.getWidth()
+        }) : undefined
+      });
+    }
+    const text = style.getText();
+    if (text) {
+      opts.text = new Text({
+        text: text.getText(),
+        font: text.getFont(),
+        offsetY: text.getOffsetY(),
+        fill: text.getFill() ? new Fill({
+          color: this._colorWithOpacity(text.getFill().getColor(), opacity)
+        }) : undefined,
+        stroke: text.getStroke() ? new Stroke({
+          color: this._colorWithOpacity(text.getStroke().getColor(), opacity),
+          width: text.getStroke().getWidth()
+        }) : undefined
+      });
+    }
+    return new Style(opts);
+  }
+
+  /**
+   * Apply opacity to a color string or array.
+   */
+  _colorWithOpacity(color, opacity) {
+    if (!color) return `rgba(0,0,0,${opacity})`;
+    if (typeof color === "string") {
+      // Handle hex
+      if (color.startsWith("#")) {
+        const r = parseInt(color.slice(1, 3), 16);
+        const g = parseInt(color.slice(3, 5), 16);
+        const b = parseInt(color.slice(5, 7), 16);
+        return `rgba(${r},${g},${b},${opacity})`;
+      }
+      // Handle rgba
+      if (color.startsWith("rgba")) {
+        return color.replace(/[\d.]+\)$/, `${opacity})`);
+      }
+      // Handle rgb
+      if (color.startsWith("rgb(")) {
+        return color.replace("rgb(", "rgba(").replace(")", `,${opacity})`);
+      }
+      return color;
+    }
+    // Array format [r,g,b,a]
+    if (Array.isArray(color)) {
+      return [color[0], color[1], color[2], opacity * 255];
+    }
+    return color;
+  }
+}
+
 var name = "@donkeyclip/motorcortex-ol";
-var version = "3.1.0";
+var version = "3.2.0";
 var description = "Openlayers library for MotorCortex";
 var main = "dist/motorcortex-ol.cjs.js";
 var module$1 = "dist/motorcortex-ol.esm.js";
@@ -40894,8 +41614,8 @@ var devDependencies = {
 	"@babel/plugin-syntax-jsx": "7.22.5",
 	"@babel/plugin-transform-react-jsx": "7.22.15",
 	"@babel/preset-env": "7.22.20",
-	"@donkeyclip/motorcortex": "9.12.0",
-	"@donkeyclip/motorcortex-player": "2.10.11",
+	"@donkeyclip/motorcortex": "^9.24.0",
+	"@donkeyclip/motorcortex-player": "^2.15.18",
 	"@rollup/plugin-babel": "5.3.1",
 	"@rollup/plugin-commonjs": "22.0.2",
 	"@rollup/plugin-json": "4.1.0",
@@ -40958,9 +41678,7 @@ var packageJSON = {
 
 var index = {
   npm_name: packageJSON.name,
-  // don't touch this
   version: packageJSON.version,
-  // don't touch this
   incidents: [{
     exportable: ZoomTo,
     name: "GoTo",
@@ -40986,6 +41704,9 @@ var index = {
         }
       }
     }
+  }, {
+    exportable: MapAttr,
+    name: "MapAttr"
   }],
   compositeAttributes: {
     goto: ["center", "zoom"]

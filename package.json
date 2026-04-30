@@ -1,6 +1,6 @@
 {
   "name": "@donkeyclip/motorcortex-ol",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "Openlayers library for MotorCortex",
   "main": "dist/motorcortex-ol.cjs.js",
   "module": "dist/motorcortex-ol.esm.js",
@@ -58,8 +58,8 @@
     "@babel/plugin-syntax-jsx": "7.22.5",
     "@babel/plugin-transform-react-jsx": "7.22.15",
     "@babel/preset-env": "7.22.20",
-    "@donkeyclip/motorcortex": "9.12.0",
-    "@donkeyclip/motorcortex-player": "2.10.11",
+    "@donkeyclip/motorcortex": "^9.24.0",
+    "@donkeyclip/motorcortex-player": "^2.15.18",
     "@rollup/plugin-babel": "5.3.1",
     "@rollup/plugin-commonjs": "22.0.2",
     "@rollup/plugin-json": "4.1.0",
