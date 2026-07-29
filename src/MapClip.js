@@ -3,6 +3,7 @@ import Map from "ol/Map";
 import View from "ol/View";
 import Tile from "ol/layer/Tile";
 import OSM from "ol/source/OSM";
+import XYZ from "ol/source/XYZ";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import Feature from "ol/Feature";
@@ -12,18 +13,47 @@ import Polygon from "ol/geom/Polygon";
 import { fromLonLat } from "ol/proj";
 import { Style, Fill, Stroke, Circle as CircleStyle, Text } from "ol/style";
 
+/**
+ * Create a tile source based on the baseMap parameter.
+ * Supported values:
+ *   "street" (default) — OpenStreetMap
+ *   "satellite"        — Esri World Imagery
+ *   "terrain"          — Stamen/Stadia Terrain
+ */
+function createTileSource(baseMap) {
+  switch (baseMap) {
+    case "satellite":
+      return new XYZ({
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        maxZoom: 19,
+        attributions: "Tiles &copy; Esri",
+      });
+    case "terrain":
+      return new XYZ({
+        url: "https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png",
+        maxZoom: 18,
+        attributions: "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.",
+      });
+    case "street":
+    default:
+      return new OSM();
+  }
+}
+
 export default class OlMap extends BrowserClip {
   onAfterRender() {
     // Vector layer for dynamic entities (points, lines, polygons)
     this._vectorSource = new VectorSource();
     this._vectorLayer = new VectorLayer({ source: this._vectorSource });
 
+    const baseMap = (this.attrs.parameters && this.attrs.parameters.baseMap) || "street";
+
     const olMap = new Map({
       target: this.context.rootElement,
       layers: [
         new Tile({
           preload: 10,
-          source: new OSM(),
+          source: createTileSource(baseMap),
         }),
         this._vectorLayer,
       ],

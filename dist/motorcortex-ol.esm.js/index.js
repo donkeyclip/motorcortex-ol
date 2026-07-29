@@ -41270,6 +41270,32 @@ var OSM = /** @class */function (_super) {
   return OSM;
 }(XYZ);
 
+/**
+ * Create a tile source based on the baseMap parameter.
+ * Supported values:
+ *   "street" (default) — OpenStreetMap
+ *   "satellite"        — Esri World Imagery
+ *   "terrain"          — Stamen/Stadia Terrain
+ */
+function createTileSource(baseMap) {
+  switch (baseMap) {
+    case "satellite":
+      return new XYZ({
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        maxZoom: 19,
+        attributions: "Tiles &copy; Esri"
+      });
+    case "terrain":
+      return new XYZ({
+        url: "https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png",
+        maxZoom: 18,
+        attributions: "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL."
+      });
+    case "street":
+    default:
+      return new OSM();
+  }
+}
 class OlMap extends BrowserClip {
   onAfterRender() {
     // Vector layer for dynamic entities (points, lines, polygons)
@@ -41277,11 +41303,12 @@ class OlMap extends BrowserClip {
     this._vectorLayer = new VectorLayer({
       source: this._vectorSource
     });
+    const baseMap = this.attrs.parameters && this.attrs.parameters.baseMap || "street";
     const olMap = new Map({
       target: this.context.rootElement,
       layers: [new TileLayer({
         preload: 10,
-        source: new OSM()
+        source: createTileSource(baseMap)
       }), this._vectorLayer],
       controls: [],
       loadTilesWhileAnimating: true,
@@ -41382,12 +41409,13 @@ class OlMap extends BrowserClip {
 
 class ZoomTo extends Effect {
   onGetContext() {
-    //initialize the animation object
     this.view = this.element.entity.getView();
+    const intermediateZoom = this.targetValue.intermediateZoom;
     this.animation = {
       anchor: this.targetValue.anchor,
       sourceResolution: this.view.getResolutionForZoom(this.initialValue.zoom),
       targetResolution: this.view.getResolutionForZoom(this.targetValue.zoom || this.initialValue.zoom),
+      intermediateResolution: intermediateZoom != null ? this.view.getResolutionForZoom(intermediateZoom) : null,
       sourceCenter: this.initialValue.center,
       targetCenter: this.targetValue.center || this.initialValue.center,
       sourceRotation: this.initialValue.rotation,
@@ -41403,33 +41431,56 @@ class ZoomTo extends Effect {
     };
   }
   onProgress(millisecond) {
-    const fraction = this.getFraction(millisecond);
-    //this has better effect than mc easings
-    /*
-    CHANGE MAP CENTER
-    */
+    const f = this.getFraction(millisecond);
     const animation = this.animation;
+    const isArc = animation.intermediateResolution != null;
+
+    // ── Base easing (symmetric) ─────────────────────────────────────
+    const t = isArc ? f + 0.084 * Math.sin(2 * Math.PI * f) : f;
+
+    // ── Arc blend (symmetric pow 0.38 flattened sine) ───────────────
+    const arc = isArc ? Math.pow(Math.sin(t * Math.PI), 0.38) : 0;
+
+    // ── Braking (100%, zoom only) ───────────────────────────────────
+    let brake = 1;
+    if (isArc && f > 0.05) {
+      const brakeF = (f - 0.05) / 0.95;
+      brake = Math.pow(1 - brakeF, 3);
+    }
+
+    // ── Center ──────────────────────────────────────────────────────
     const x0 = animation.sourceCenter[0];
     const y0 = animation.sourceCenter[1];
     const x1 = animation.targetCenter[0];
     const y1 = animation.targetCenter[1];
-    const x = x0 + fraction * (x1 - x0);
-    const y = y0 + fraction * (y1 - y0);
-    this.view.setCenter([x, y]);
+    let centerT = t;
+    if (isArc && f > 0.05) {
+      const brakeF = (f - 0.05) / 0.95;
+      const tAtBrakeStart = 0.05 + 0.084 * Math.sin(2 * Math.PI * 0.05);
+      const remaining = 1 - tAtBrakeStart;
+      const easedBrakeF = 1 - Math.pow(1 - brakeF, 3);
+      centerT = tAtBrakeStart + remaining * easedBrakeF;
+    }
+    this.view.setCenter([x0 + centerT * (x1 - x0), y0 + centerT * (y1 - y0)]);
 
-    /*
-    CHANGE MAP RESOLUTION
-    */
-    const resolution = fraction === 1 ? animation.targetResolution : animation.sourceResolution + fraction * (animation.targetResolution - animation.sourceResolution);
+    // ── Resolution (zoom) ──────────────────────────────────────────
+    const zoomArc = arc * brake;
+    let resolution;
+    if (f === 1) {
+      resolution = animation.targetResolution;
+    } else if (isArc) {
+      const linearRes = animation.sourceResolution + t * (animation.targetResolution - animation.sourceResolution);
+      resolution = linearRes + zoomArc * (animation.intermediateResolution - linearRes);
+    } else {
+      resolution = animation.sourceResolution + f * (animation.targetResolution - animation.sourceResolution);
+    }
     if (animation.anchor) {
       this.view.setCenter(this.view.calculateCenterZoom(resolution, animation.anchor));
     }
     this.view.setResolution(resolution);
 
-    /*
-    CHANGE MAP ROTATION
-    */
-    const rotation = fraction === 1 ? (animation.targetRotation + Math.PI) % (2 * Math.PI) - Math.PI : animation.sourceRotation + fraction * (animation.targetRotation - animation.sourceRotation);
+    // ── Rotation ───────────────────────────────────────────────────
+    const rotation = f === 1 ? (animation.targetRotation + Math.PI) % (2 * Math.PI) - Math.PI : animation.sourceRotation + f * (animation.targetRotation - animation.sourceRotation);
     if (animation.anchor) {
       this.view.setCenter(this.view.calculateCenterRotate(rotation, animation.anchor));
     }
@@ -41696,6 +41747,11 @@ var index = {
                 items: "number",
                 min: 2,
                 max: 2
+              },
+              intermediateZoom: {
+                type: "number",
+                min: 0,
+                optional: true
               }
             }
           }
@@ -41707,7 +41763,7 @@ var index = {
     name: "MapAttr"
   }],
   compositeAttributes: {
-    goto: ["center", "zoom"]
+    goto: ["center", "zoom", "intermediateZoom"]
   },
   Clip: OlMap,
   utils: {

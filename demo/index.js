@@ -6,139 +6,71 @@ const Maps = loadPlugin(MapsDef);
 
 const london = MapsDef.utils.fromLonLat([-0.12755, 51.507222]);
 const moscow = MapsDef.utils.fromLonLat([37.6178, 55.7517]);
-const bern = MapsDef.utils.fromLonLat([7.4458, 46.95]);
+const tokyo = MapsDef.utils.fromLonLat([139.6917, 35.6895]);
+const athens = MapsDef.utils.fromLonLat([23.7275, 37.9838]);
+const nyc = MapsDef.utils.fromLonLat([-74.006, 40.7128]);
+const sydney = MapsDef.utils.fromLonLat([151.2093, -33.8688]);
 
-const map = new Maps.Clip(
-  {
-    parameters: {
-      view: { center: london, zoom: 8 },
-    },
-  },
+// ═══════════════════════════════════════════════════════════════════════
+// TEST 1: Street map — arc flight, same zoom both ends (5→5, intermediate 2)
+// London → Moscow
+// ═══════════════════════════════════════════════════════════════════════
+const map1 = new Maps.Clip(
+  { parameters: { view: { center: london, zoom: 5 }, baseMap: "street" } },
   {
     host: document.getElementById("clip"),
     containerParams: { width: "1280px", height: "720px" },
   }
 );
 
-// ─── Original GoTo sequence: London → Bern → Moscow ─────────────────────
-map.addIncident(
+map1.addIncident(
   new Maps.GoTo(
-    { animatedAttrs: { goto: { zoom: 3, center: bern } } },
-    { duration: 4000, selector: "!#olmap", easing: "easeInExpo" }
+    { animatedAttrs: { goto: { zoom: 5, center: moscow, intermediateZoom: 2 } } },
+    { duration: 5000, selector: "!#olmap", easing: "easeInOutCubic" }
   ),
-  0
+  1000
 );
 
-map.addIncident(
-  new Maps.GoTo(
-    { animatedAttrs: { goto: { zoom: 8, center: moscow } } },
-    { duration: 4000, selector: "!#olmap", easing: "easeInExpo" }
-  ),
-  4000
-);
-
-// ─── Once at Moscow (8s), add shapes (hidden) and reveal them ───────────
-
-// Point marker: Moscow
-map.addCustomEntity(
-  { type: "point", coords: [37.6178, 55.7517], color: "#e76f51", label: "Moscow", size: 10 },
-  "moscow_pin", ["cities"], true
-);
-
-// Point marker: Saint Petersburg
-map.addCustomEntity(
-  { type: "point", coords: [30.3351, 59.9343], color: "#2a9d8f", label: "St. Petersburg", size: 8 },
-  "spb_pin", ["cities"], true
-);
-
-// Line: Moscow → St. Petersburg
-map.addCustomEntity(
-  { type: "line", coords: [[37.6178, 55.7517], [30.3351, 59.9343]], color: "#264653", width: 3 },
-  "msk_spb_line", ["routes"], true
-);
-
-// Polygon: rough area around Moscow region
-map.addCustomEntity(
+// ═══════════════════════════════════════════════════════════════════════
+// TEST 2: Satellite map — zoom-in flight, no arc (4→10)
+// Athens → Tokyo
+// ═══════════════════════════════════════════════════════════════════════
+const map2 = new Maps.Clip(
+  { parameters: { view: { center: athens, zoom: 4 }, baseMap: "satellite" } },
   {
-    type: "polygon",
-    coords: [
-      [36.0, 56.5], [39.0, 56.5], [39.0, 54.5], [36.0, 54.5], [36.0, 56.5],
-    ],
-    color: "#f4a261",
-    fillColor: "rgba(244, 162, 97, 0.3)",
-    width: 2,
-  },
-  "moscow_region", ["regions"], true
+    host: document.getElementById("clip2"),
+    containerParams: { width: "1280px", height: "720px" },
+  }
 );
 
-// ─── Reveal Moscow pin at 8.5s (fade in) ────────────────────────────────
-map.addIncident(
-  new Maps.MapAttr(
-    { animatedAttrs: { opacity: 1 } },
-    { selector: "!#moscow_pin", duration: 1000 }
-  ),
-  8500
-);
-
-// ─── Reveal St. Petersburg pin at 10s ───────────────────────────────────
-map.addIncident(
-  new Maps.MapAttr(
-    { animatedAttrs: { opacity: 1 } },
-    { selector: "!#spb_pin", duration: 1000 }
-  ),
-  10000
-);
-
-// ─── Reveal the connecting line at 11.5s ────────────────────────────────
-map.addIncident(
-  new Maps.MapAttr(
-    { animatedAttrs: { opacity: 1 } },
-    { selector: "!#msk_spb_line", duration: 1500 }
-  ),
-  11500
-);
-
-// ─── Reveal Moscow region polygon at 13.5s ──────────────────────────────
-map.addIncident(
-  new Maps.MapAttr(
-    { animatedAttrs: { opacity: 1 } },
-    { selector: "!#moscow_region", duration: 1500 }
-  ),
-  13500
-);
-
-// ─── Scale up Moscow pin (pulse) at 15.5s ───────────────────────────────
-map.addIncident(
-  new Maps.MapAttr(
-    { animatedAttrs: { scale: 2 } },
-    { selector: "!#moscow_pin", duration: 500 }
-  ),
-  15500
-);
-map.addIncident(
-  new Maps.MapAttr(
-    { animatedAttrs: { scale: 1 } },
-    { selector: "!#moscow_pin", duration: 500 }
-  ),
-  16000
-);
-
-// ─── Zoom out to see both cities at 17s ─────────────────────────────────
-map.addIncident(
+map2.addIncident(
   new Maps.GoTo(
-    { animatedAttrs: { goto: { zoom: 5, center: MapsDef.utils.fromLonLat([34.0, 57.5]) } } },
-    { duration: 3000, selector: "!#olmap", easing: "easeInOutCubic" }
+    { animatedAttrs: { goto: { zoom: 10, center: tokyo } } },
+    { duration: 5000, selector: "!#olmap", easing: "easeInOutCubic" }
   ),
-  17000
+  1000
 );
 
-// ─── Fade out the polygon at 20s ────────────────────────────────────────
-map.addIncident(
-  new Maps.MapAttr(
-    { animatedAttrs: { opacity: 0 } },
-    { selector: "!#moscow_region", duration: 1500 }
-  ),
-  20000
+// ═══════════════════════════════════════════════════════════════════════
+// TEST 3: Terrain map — long-haul arc flight (8→8, intermediate 2)
+// NYC → Sydney
+// ═══════════════════════════════════════════════════════════════════════
+const map3 = new Maps.Clip(
+  { parameters: { view: { center: nyc, zoom: 8 }, baseMap: "terrain" } },
+  {
+    host: document.getElementById("clip3"),
+    containerParams: { width: "1280px", height: "720px" },
+  }
 );
 
-new Player({ clip: map });
+map3.addIncident(
+  new Maps.GoTo(
+    { animatedAttrs: { goto: { zoom: 8, center: sydney, intermediateZoom: 2 } } },
+    { duration: 6000, selector: "!#olmap", easing: "easeInOutCubic" }
+  ),
+  1000
+);
+
+new Player({ clip: map1 });
+new Player({ clip: map2 });
+new Player({ clip: map3 });

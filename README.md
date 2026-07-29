@@ -66,11 +66,35 @@ const clip = new Maps.Clip(
 );
 ```
 ### Map Clip Attrs
-Map Clip take as a parameter a `view` object. This object contains the starting point (`center`) and the `zoom` number.
-The `center` value has the following structure: 
+Map Clip takes a `parameters` object with:
+- `view` — starting point (`center`) and `zoom` number
+- `baseMap` — tile layer type: `"street"` (default), `"satellite"`, or `"terrain"`
+
 ```javascript
-center: MapsDef.utils.fromLonLat([-0.12755, 51.507222])
+// Street map (default)
+const clip = new Maps.Clip(
+  { parameters: { view: { center: london, zoom: 8 } } },
+  { host: el, containerParams: { width: "1280px", height: "720px" } }
+);
+
+// Satellite imagery
+const clip = new Maps.Clip(
+  { parameters: { view: { center: london, zoom: 8 }, baseMap: "satellite" } },
+  { host: el, containerParams: { width: "1280px", height: "720px" } }
+);
+
+// Terrain
+const clip = new Maps.Clip(
+  { parameters: { view: { center: london, zoom: 8 }, baseMap: "terrain" } },
+  { host: el, containerParams: { width: "1280px", height: "720px" } }
+);
 ```
+
+| baseMap       | Source                | Description                     |
+| ------------- | --------------------- | ------------------------------- |
+| `"street"`    | OpenStreetMap          | Default street map              |
+| `"satellite"` | Esri World Imagery     | Satellite/aerial photography    |
+| `"terrain"`   | Stadia/Stamen Terrain  | Topographic terrain with labels |
 
 ## GoTo
 ```javascript
@@ -86,8 +110,33 @@ const gotoBern = new Maps.GoTo(
   { duration: 4000, selector: "!#olmap" }
 );
 ```
-### GoTo Attrs 
-Goto Incident take as an attribute a `goto` object.This object contains the ending point (`center`) and the `zoom` number.
+
+### Arc Flight (intermediateZoom)
+When flying between distant locations, use `intermediateZoom` for a cinematic arc — the camera zooms out to cruise altitude, pans across, then zooms back in to land.
+
+```javascript
+const arcFlight = new Maps.GoTo(
+  {
+    animatedAttrs: {
+      goto: {
+        zoom: 12,
+        center: london,
+        intermediateZoom: 3
+      }
+    }
+  },
+  { duration: 5000, selector: "!#olmap", easing: "easeInOutCubic" }
+);
+```
+
+| Attr              | Type   | Description                                         |
+| ----------------- | ------ | --------------------------------------------------- |
+| center            | array  | `[x, y]` projected target coordinates               |
+| zoom              | number | Target zoom level                                   |
+| intermediateZoom  | number | (optional) Cruise altitude zoom for arc flight      |
+
+### GoTo Attrs
+GoTo Incident takes as an attribute a `goto` object. This object contains the ending point (`center`) and the `zoom` number. Optionally, `intermediateZoom` enables arc flight.
 
 #### IMPORTANT
 Along with the attributes, all `GoTo incidents` must take on their props the `selector` key with the value: `!#olmap`
