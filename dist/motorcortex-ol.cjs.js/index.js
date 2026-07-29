@@ -41275,9 +41275,14 @@ var OSM = /** @class */function (_super) {
 /**
  * Create a tile source based on the baseMap parameter.
  * Supported values:
- *   "street" (default) — OpenStreetMap
- *   "satellite"        — Esri World Imagery
- *   "terrain"          — Stamen/Stadia Terrain
+ *   "street"     (default) — OpenStreetMap
+ *   "satellite"            — Esri World Imagery
+ *   "terrain"              — Stadia Stamen Terrain
+ *   "dark"                 — CartoDB Dark Matter
+ *   "light"                — CartoDB Positron
+ *   "toner"                — Stadia Stamen Toner
+ *   "watercolor"           — Stadia Stamen Watercolor
+ *   "topo"                 — OpenTopoMap
  */
 function createTileSource(baseMap) {
   switch (baseMap) {
@@ -41292,6 +41297,36 @@ function createTileSource(baseMap) {
         url: "https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png",
         maxZoom: 18,
         attributions: "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL."
+      });
+    case "dark":
+      return new XYZ({
+        url: "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        maxZoom: 20,
+        attributions: "&copy; OpenStreetMap contributors &copy; CARTO"
+      });
+    case "light":
+      return new XYZ({
+        url: "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+        maxZoom: 20,
+        attributions: "&copy; OpenStreetMap contributors &copy; CARTO"
+      });
+    case "toner":
+      return new XYZ({
+        url: "https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}.png",
+        maxZoom: 18,
+        attributions: "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL."
+      });
+    case "watercolor":
+      return new XYZ({
+        url: "https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg",
+        maxZoom: 16,
+        attributions: "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL."
+      });
+    case "topo":
+      return new XYZ({
+        url: "https://tile.opentopomap.org/{z}/{x}/{y}.png",
+        maxZoom: 17,
+        attributions: "Map data &copy; OpenStreetMap contributors, SRTM | Map style &copy; OpenTopoMap"
       });
     case "street":
     default:
@@ -41412,29 +41447,17 @@ class OlMap extends motorcortex.BrowserClip {
 class ZoomTo extends motorcortex.Effect {
   onGetContext() {
     this.view = this.element.entity.getView();
-    const intermediateZoom = this.targetValue.intermediateZoom;
-    const src = this.initialValue.center;
-    const tgt = this.targetValue.center || src;
-    // Distance in projected meters — drives plateau width for arc flights.
-    const dx = tgt[0] - src[0];
-    const dy = tgt[1] - src[1];
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    // Map distance to arc exponent: longer flights → smaller exponent → wider plateau.
-    // ~500km (short) → 0.55, ~5000km (medium) → 0.38, ~15000km+ (long) → 0.22
-    const shortDist = 500000; // 500km in projected meters
-    const longDist = 15000000; // 15000km
-    const clampedDist = Math.max(shortDist, Math.min(longDist, dist));
-    const distRatio = (clampedDist - shortDist) / (longDist - shortDist); // 0→1
-    const arcExponent = 0.55 - distRatio * 0.33; // 0.55 (short) → 0.22 (long)
-
+    // intermediateZoom is a static param, not a composite attribute —
+    // read from raw attrs, not from MC's decomposed targetValue.
+    const gotoAttrs = this.attrs.animatedAttrs.goto || {};
+    const intermediateZoom = gotoAttrs.intermediateZoom;
     this.animation = {
       anchor: this.targetValue.anchor,
       sourceResolution: this.view.getResolutionForZoom(this.initialValue.zoom),
       targetResolution: this.view.getResolutionForZoom(this.targetValue.zoom || this.initialValue.zoom),
       intermediateResolution: intermediateZoom != null ? this.view.getResolutionForZoom(intermediateZoom) : null,
-      arcExponent,
-      sourceCenter: src,
-      targetCenter: tgt,
+      sourceCenter: this.initialValue.center,
+      targetCenter: this.targetValue.center || this.initialValue.center,
       sourceRotation: this.initialValue.rotation,
       targetRotation: this.targetValue.rotation ? this.initialValue.rotation + (this.targetValue.rotation - this.initialValue.rotation + Math.PI) % (2 * Math.PI) - Math.PI : this.initialValue.rotation
     };
@@ -41456,7 +41479,7 @@ class ZoomTo extends motorcortex.Effect {
     const t = isArc ? f + 0.084 * Math.sin(2 * Math.PI * f) : f;
 
     // ── Arc blend (symmetric pow 0.38 flattened sine) ───────────────
-    const arc = isArc ? Math.pow(Math.sin(t * Math.PI), animation.arcExponent) : 0;
+    const arc = isArc ? Math.pow(Math.sin(t * Math.PI), 0.38) : 0;
 
     // ── Braking (100%, zoom only) ───────────────────────────────────
     let brake = 1;
@@ -41465,19 +41488,12 @@ class ZoomTo extends motorcortex.Effect {
       brake = Math.pow(1 - brakeF, 3);
     }
 
-    // ── Center ──────────────────────────────────────────────────────
+    // ── Center (cubic ease-out for full flight) ───────────────────
     const x0 = animation.sourceCenter[0];
     const y0 = animation.sourceCenter[1];
     const x1 = animation.targetCenter[0];
     const y1 = animation.targetCenter[1];
-    let centerT = t;
-    if (isArc && f > 0.05) {
-      const brakeF = (f - 0.05) / 0.95;
-      const tAtBrakeStart = 0.05 + 0.084 * Math.sin(2 * Math.PI * 0.05);
-      const remaining = 1 - tAtBrakeStart;
-      const easedBrakeF = 1 - Math.pow(1 - brakeF, 3);
-      centerT = tAtBrakeStart + remaining * easedBrakeF;
-    }
+    const centerT = isArc ? 1 - Math.pow(1 - f, 3) : t;
     this.view.setCenter([x0 + centerT * (x1 - x0), y0 + centerT * (y1 - y0)]);
 
     // ── Resolution (zoom) ──────────────────────────────────────────
@@ -41780,7 +41796,7 @@ var index = {
     name: "MapAttr"
   }],
   compositeAttributes: {
-    goto: ["center", "zoom", "intermediateZoom"]
+    goto: ["center", "zoom"]
   },
   Clip: OlMap,
   utils: {
