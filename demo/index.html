@@ -1,27 +1,54 @@
 <!DOCTYPE html>
 <html>
 	<head>
-	  <title>Motorcortex OpenLayers Map Example</title>
+	  <title>Motorcortex OpenLayers Map — Feature Tests</title>
 	  <style>
 	  	html, body {
-	  		height:100%;
 	  		width: 100%;
-	  		margin:0;
-	  		padding:0;
-	  		font-family:"Century Gothic", CenturyGothic, AppleGothic,sans-serif;
-	  		background: #282828;
-	  		display: flex;
-	  		justify-content: center;
-	  		align-items: center;
+	  		margin: 0;
+	  		padding: 0;
+	  		font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif;
+	  		background: #1a1a2e;
 	  	}
-	  	#clip{
-			width: 100%;
-			height: 100%	  		
+	  	.test {
+	  		margin: 32px auto;
+	  		max-width: 1300px;
+	  	}
+	  	.test h2 {
+	  		color: #e0e0e0;
+	  		margin: 0 0 8px 0;
+	  		font-size: 18px;
+	  	}
+	  	.test p {
+	  		color: #999;
+	  		margin: 0 0 12px 0;
+	  		font-size: 14px;
+	  	}
+	  	.clip-host {
+	  		width: 100%;
+	  		height: 720px;
 	  	}
 	  </style>
 	</head>
 	<body>
-		<div id="clip"></div>
+		<div class="test">
+			<h2>Test 1: Street Map — Arc Flight (zoom 5→5, intermediateZoom 2)</h2>
+			<p>London → Moscow. Same zoom at both ends, arc zoom-out to continent level mid-flight.</p>
+			<div id="clip" class="clip-host"></div>
+		</div>
+
+		<div class="test">
+			<h2>Test 2: Satellite Map — Standard Flight (zoom 4→10, no arc)</h2>
+			<p>Athens → Tokyo. Zoom-in flight across continents on satellite imagery. No intermediateZoom.</p>
+			<div id="clip2" class="clip-host"></div>
+		</div>
+
+		<div class="test">
+			<h2>Test 3: Terrain Map — Long-Haul Arc (zoom 8→8, intermediateZoom 2)</h2>
+			<p>New York → Sydney. Maximum distance arc flight on terrain tiles.</p>
+			<div id="clip3" class="clip-host"></div>
+		</div>
+
 	  <script src="./bundle.js"></script>
 	</body>
 </html>

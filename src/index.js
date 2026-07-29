@@ -20,6 +20,7 @@ export default {
               props: {
                 zoom: { type: "number", min: 0 },
                 center: { type: "array", items: "number", min: 2, max: 2 },
+                intermediateZoom: { type: "number", min: 0, optional: true },
               },
             },
           },
@@ -31,7 +32,7 @@ export default {
       name: "MapAttr",
     },
   ],
-  compositeAttributes: { goto: ["center", "zoom"] },
+  compositeAttributes: { goto: ["center", "zoom", "intermediateZoom"] },
   Clip,
   utils: {
     fromLonLat,
