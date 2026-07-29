@@ -32,7 +32,7 @@ export default {
       name: "MapAttr",
     },
   ],
-  compositeAttributes: { goto: ["center", "zoom", "intermediateZoom"] },
+  compositeAttributes: { goto: ["center", "zoom"] },
   Clip,
   utils: {
     fromLonLat,

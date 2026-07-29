@@ -16,9 +16,14 @@ import { Style, Fill, Stroke, Circle as CircleStyle, Text } from "ol/style";
 /**
  * Create a tile source based on the baseMap parameter.
  * Supported values:
- *   "street" (default) — OpenStreetMap
- *   "satellite"        — Esri World Imagery
- *   "terrain"          — Stamen/Stadia Terrain
+ *   "street"     (default) — OpenStreetMap
+ *   "satellite"            — Esri World Imagery
+ *   "terrain"              — Stadia Stamen Terrain
+ *   "dark"                 — CartoDB Dark Matter
+ *   "light"                — CartoDB Positron
+ *   "toner"                — Stadia Stamen Toner
+ *   "watercolor"           — Stadia Stamen Watercolor
+ *   "topo"                 — OpenTopoMap
  */
 function createTileSource(baseMap) {
   switch (baseMap) {
@@ -33,6 +38,36 @@ function createTileSource(baseMap) {
         url: "https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png",
         maxZoom: 18,
         attributions: "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.",
+      });
+    case "dark":
+      return new XYZ({
+        url: "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        maxZoom: 20,
+        attributions: "&copy; OpenStreetMap contributors &copy; CARTO",
+      });
+    case "light":
+      return new XYZ({
+        url: "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+        maxZoom: 20,
+        attributions: "&copy; OpenStreetMap contributors &copy; CARTO",
+      });
+    case "toner":
+      return new XYZ({
+        url: "https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}.png",
+        maxZoom: 18,
+        attributions: "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.",
+      });
+    case "watercolor":
+      return new XYZ({
+        url: "https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg",
+        maxZoom: 16,
+        attributions: "Map tiles by Stamen Design, under CC BY 3.0. Data by OpenStreetMap, under ODbL.",
+      });
+    case "topo":
+      return new XYZ({
+        url: "https://tile.opentopomap.org/{z}/{x}/{y}.png",
+        maxZoom: 17,
+        attributions: "Map data &copy; OpenStreetMap contributors, SRTM | Map style &copy; OpenTopoMap",
       });
     case "street":
     default:

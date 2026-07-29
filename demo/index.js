@@ -10,12 +10,18 @@ const tokyo = MapsDef.utils.fromLonLat([139.6917, 35.6895]);
 const athens = MapsDef.utils.fromLonLat([23.7275, 37.9838]);
 const nyc = MapsDef.utils.fromLonLat([-74.006, 40.7128]);
 const sydney = MapsDef.utils.fromLonLat([151.2093, -33.8688]);
+const paris = MapsDef.utils.fromLonLat([2.3522, 48.8566]);
+const rome = MapsDef.utils.fromLonLat([12.4964, 41.9028]);
+const rio = MapsDef.utils.fromLonLat([-43.1729, -22.9068]);
+const cairo = MapsDef.utils.fromLonLat([31.2357, 30.0444]);
+const reykjavik = MapsDef.utils.fromLonLat([-21.8174, 64.1466]);
 
 // ═══════════════════════════════════════════════════════════════════════
-// TEST 1: Street map — arc flight, same zoom both ends (5→5, intermediate 2)
-// London → Moscow
+// Single clip: Street map — arc flight London → Moscow (zoom 5→5, intermediate 2)
+// Then standard flight Moscow → Athens (no arc)
+// Then 10s slow arc NYC → London on same map
 // ═══════════════════════════════════════════════════════════════════════
-const map1 = new Maps.Clip(
+const map = new Maps.Clip(
   { parameters: { view: { center: london, zoom: 5 }, baseMap: "street" } },
   {
     host: document.getElementById("clip"),
@@ -23,7 +29,8 @@ const map1 = new Maps.Clip(
   }
 );
 
-map1.addIncident(
+// 1. Arc flight: London → Moscow (zoom 5→5, intermediateZoom 2)
+map.addIncident(
   new Maps.GoTo(
     { animatedAttrs: { goto: { zoom: 5, center: moscow, intermediateZoom: 2 } } },
     { duration: 5000, selector: "!#olmap", easing: "easeInOutCubic" }
@@ -31,46 +38,31 @@ map1.addIncident(
   1000
 );
 
-// ═══════════════════════════════════════════════════════════════════════
-// TEST 2: Satellite map — zoom-in flight, no arc (4→10)
-// Athens → Tokyo
-// ═══════════════════════════════════════════════════════════════════════
-const map2 = new Maps.Clip(
-  { parameters: { view: { center: athens, zoom: 4 }, baseMap: "satellite" } },
-  {
-    host: document.getElementById("clip2"),
-    containerParams: { width: "1280px", height: "720px" },
-  }
-);
-
-map2.addIncident(
+// 2. Standard flight: Moscow → Athens (zoom 5→8, no arc)
+map.addIncident(
   new Maps.GoTo(
-    { animatedAttrs: { goto: { zoom: 10, center: tokyo } } },
-    { duration: 5000, selector: "!#olmap", easing: "easeInOutCubic" }
+    { animatedAttrs: { goto: { zoom: 8, center: athens } } },
+    { duration: 4000, selector: "!#olmap", easing: "easeInOutCubic" }
   ),
-  1000
+  7000
 );
 
-// ═══════════════════════════════════════════════════════════════════════
-// TEST 3: Terrain map — long-haul arc flight (8→8, intermediate 2)
-// NYC → Sydney
-// ═══════════════════════════════════════════════════════════════════════
-const map3 = new Maps.Clip(
-  { parameters: { view: { center: nyc, zoom: 8 }, baseMap: "terrain" } },
-  {
-    host: document.getElementById("clip3"),
-    containerParams: { width: "1280px", height: "720px" },
-  }
-);
-
-map3.addIncident(
+// 3. Slow arc: Athens → NYC (zoom 8→6, intermediateZoom 2, 10s)
+map.addIncident(
   new Maps.GoTo(
-    { animatedAttrs: { goto: { zoom: 8, center: sydney, intermediateZoom: 2 } } },
+    { animatedAttrs: { goto: { zoom: 6, center: nyc, intermediateZoom: 2 } } },
+    { duration: 10000, selector: "!#olmap", easing: "easeInOutCubic" }
+  ),
+  12000
+);
+
+// 4. Arc: NYC → Sydney (zoom 6→6, intermediateZoom 2)
+map.addIncident(
+  new Maps.GoTo(
+    { animatedAttrs: { goto: { zoom: 6, center: sydney, intermediateZoom: 2 } } },
     { duration: 6000, selector: "!#olmap", easing: "easeInOutCubic" }
   ),
-  1000
+  23000
 );
 
-new Player({ clip: map1 });
-new Player({ clip: map2 });
-new Player({ clip: map3 });
+new Player({ clip: map });
