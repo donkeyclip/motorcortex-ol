@@ -41411,13 +41411,28 @@ class ZoomTo extends Effect {
   onGetContext() {
     this.view = this.element.entity.getView();
     const intermediateZoom = this.targetValue.intermediateZoom;
+    const src = this.initialValue.center;
+    const tgt = this.targetValue.center || src;
+    // Distance in projected meters — drives plateau width for arc flights.
+    const dx = tgt[0] - src[0];
+    const dy = tgt[1] - src[1];
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    // Map distance to arc exponent: longer flights → smaller exponent → wider plateau.
+    // ~500km (short) → 0.55, ~5000km (medium) → 0.38, ~15000km+ (long) → 0.22
+    const shortDist = 500000; // 500km in projected meters
+    const longDist = 15000000; // 15000km
+    const clampedDist = Math.max(shortDist, Math.min(longDist, dist));
+    const distRatio = (clampedDist - shortDist) / (longDist - shortDist); // 0→1
+    const arcExponent = 0.55 - distRatio * 0.33; // 0.55 (short) → 0.22 (long)
+
     this.animation = {
       anchor: this.targetValue.anchor,
       sourceResolution: this.view.getResolutionForZoom(this.initialValue.zoom),
       targetResolution: this.view.getResolutionForZoom(this.targetValue.zoom || this.initialValue.zoom),
       intermediateResolution: intermediateZoom != null ? this.view.getResolutionForZoom(intermediateZoom) : null,
-      sourceCenter: this.initialValue.center,
-      targetCenter: this.targetValue.center || this.initialValue.center,
+      arcExponent,
+      sourceCenter: src,
+      targetCenter: tgt,
       sourceRotation: this.initialValue.rotation,
       targetRotation: this.targetValue.rotation ? this.initialValue.rotation + (this.targetValue.rotation - this.initialValue.rotation + Math.PI) % (2 * Math.PI) - Math.PI : this.initialValue.rotation
     };
@@ -41439,7 +41454,7 @@ class ZoomTo extends Effect {
     const t = isArc ? f + 0.084 * Math.sin(2 * Math.PI * f) : f;
 
     // ── Arc blend (symmetric pow 0.38 flattened sine) ───────────────
-    const arc = isArc ? Math.pow(Math.sin(t * Math.PI), 0.38) : 0;
+    const arc = isArc ? Math.pow(Math.sin(t * Math.PI), animation.arcExponent) : 0;
 
     // ── Braking (100%, zoom only) ───────────────────────────────────
     let brake = 1;
